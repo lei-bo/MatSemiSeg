@@ -6,10 +6,10 @@ import itertools
 def milp_optimize(sim_matrix: np.ndarray, k: int) -> np.ndarray:
     """
     Optimize a mixed-integer linear program to find a subset of size k such that
-    the sum of maximum similarity between the subset and the rest of the set is
+    the sum of maximum non-negative similarity between the subset and the rest of the set is
     maximized.
-    :param sim_matrix: entry [i,j] gives the similarity between data
-    point i and j
+    :param sim_matrix: the similarity matrix with each entry [i,j] gives the
+    non-negative similarity between data point i and j
     :param k: size of the subset
     :return: indices of the data in the subset
     """
@@ -30,10 +30,10 @@ def milp_optimize(sim_matrix: np.ndarray, k: int) -> np.ndarray:
     obj = cp.Maximize(cp.sum(z))
     prob = cp.Problem(obj, constraints)
     prob.solve(solver=cp.GUROBI)
-    return np.where(x.value == 1)[0]
+    return np.where(np.isclose(x.value, 1))[0]
 
 
-def _brute_force_search(sim_matrix, k):
+def brute_force_search(sim_matrix, k):
     best_sim = 0
     selection = tuple()
     n = sim_matrix.shape[0]
@@ -61,6 +61,6 @@ if __name__ == '__main__':
         res_milp = milp_optimize(sim_mat, k)
         print(f"complete MILP optimization in {time.time() - start:.3f} s")
         start = time.time()
-        res_bf = _brute_force_search(sim_mat, k)
+        res_bf = brute_force_search(sim_mat, k)
         print(f"complete brute force search in {time.time() - start:.3f} s")
         assert np.all(res_milp == res_bf)

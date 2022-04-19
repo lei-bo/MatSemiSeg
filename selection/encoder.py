@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torchvision.models import vgg16
 
 
-class hypercolumn_vgg(nn.Module):
+class HypercolumnVgg(nn.Module):
     """
     Hypercolumn representation of image at pixel level using VGG16
     convolutional blocks as feature extractor. Feature maps at different
@@ -17,9 +17,8 @@ class hypercolumn_vgg(nn.Module):
         :param n_conv_blocks: number of VGG16 convolutional blocks used for
         feature extraction.
         """
-        super(hypercolumn_vgg, self).__init__()
-        features = list(vgg16(pretrained=True).features)
-        self.features = nn.ModuleList(features)
+        super(HypercolumnVgg, self).__init__()
+        self.features = nn.ModuleList(vgg16(pretrained=True).features)
         self.n_conv_blocks = n_conv_blocks
         self.feature_maps_index = [3, 8, 15, 22, 29]
 

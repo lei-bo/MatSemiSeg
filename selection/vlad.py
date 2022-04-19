@@ -16,11 +16,8 @@ class VLAD:
         :param embeddings_sample: aggregated random samples of pixel embeddings
         from all the images to be select
         """
-        print(f"shape of sampled pixel embeddings before PCA and KMeans:\n{embeddings_sample.shape}")
         embeddings_sample = self.pca.fit_transform(embeddings_sample)
-        print("--- training kmeans ---")
         self.kmeans.fit(embeddings_sample)
-        print("--- finished ---")
 
     def get_vlad_repr(self, embeddings):
         """
