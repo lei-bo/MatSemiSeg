@@ -1,0 +1,33 @@
+# dataset basic
+dataset: uhcs
+img_folder: images
+label_folder: labels
+n_classes: 4
+
+# train, validation and test split
+split_info:
+  type: CSVSplit
+  test_type: CSVSplit
+  split_file: split_6fold.csv
+  split_col_name: split
+  val_split_num: 1
+  test_split_num: 0
+  train_reverse: True
+
+# data information
+train_size: [224, 224]
+eval_size: [484, 645]
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+ignore_index: -1
+
+# data augmentation
+augmentations:
+  Flip: {p: 0.5}
+
+# training
+n_epochs: 100
+train_repeat: 1
+batch_size: 4
+lr: 0.0001
+early_stop_patience: 10
