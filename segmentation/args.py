@@ -2,6 +2,9 @@ from argparse import ArgumentParser, Namespace
 import yaml
 import os
 import torch
+import random
+import numpy as np
+
 
 class Arguments:
     def __init__(self):
@@ -26,6 +29,7 @@ class Arguments:
         args.update(default_config)
         args.update(config)
         args['split_info'] = Namespace(**args['split_info'])
+        args['lr_scheduler'] = Namespace(**args['lr_scheduler'])
         args = Namespace(**args)
 
         # compile basic information
@@ -34,17 +38,21 @@ class Arguments:
         args.img_dir = f"{args.dataset_root}/{args.img_folder}"
         args.label_dir = f"{args.dataset_root}/{args.label_folder}"
 
-        # TODO: exp name
-        args.experim_name = None
+        args.experim_name = args.config.split('.')[0]
         args.checkpoints_dir = f"{args.root}/segmentation/checkpoints/{args.dataset}/{args.experim_name}"
         os.makedirs(args.checkpoints_dir, exist_ok=True)
         args.model_path = Namespace(**{"early_stop": f"{args.checkpoints_dir}/early_stop.pth",
                                        "best_miou": f"{args.checkpoints_dir}/best_miou.pth"})
+        args.record_path = f"{args.checkpoints_dir}/train_record.csv"
 
+        # set seed
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
         return args
 
 
 if __name__ == '__main__':
     arg_parser = Arguments()
     args = arg_parser.parse_args()
-    [print(k,':',v) for k, v in vars(args).items()]
+    [print(k, ':', v) for k, v in vars(args).items()]
