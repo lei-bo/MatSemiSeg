@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 from torch.optim import Adam
 from tqdm import tqdm
@@ -6,6 +5,7 @@ from tqdm import tqdm
 from .args import Arguments
 from .UNet import UNetVgg16
 from .datasets import get_dataloaders
+from .eval import eval_epoch
 from .utils import AverageMeter, ScoreMeter, Recorder, ModelSaver, LRScheduler
 
 
@@ -29,26 +29,6 @@ def train_epoch(model, dataloader, n_classes, optimizer, lr_scheduler, criterion
         score_meter.update(preds, labels.cpu().numpy())
 
     scores = score_meter.get_scores()
-    miou, acc = scores['mIoU'], scores['accuracy']
-    return loss_meter.avg, acc, miou
-
-
-@torch.no_grad()
-def evaluate(model, dataloader, n_classes, criterion, device):
-    model.eval()
-    loss_meter = AverageMeter()
-    score_meter = ScoreMeter(n_classes)
-    for inputs, labels, _ in tqdm(dataloader):
-        inputs, labels = inputs.to(device), labels.long().to(device)
-        # forward
-        outputs = model(inputs)
-        loss = criterion(outputs, labels)
-        preds = outputs.detach().cpu().numpy().argmax(axis=1)
-        # measure
-        loss_meter.update(loss.item(), inputs.size(0))
-        score_meter.update(preds, labels.cpu().numpy())
-
-    scores = score_meter.get_scores()
     miou, ious, acc = scores['mIoU'], scores['IoUs'], scores['accuracy']
     return loss_meter.avg, acc, miou, ious
 
@@ -64,7 +44,7 @@ def train(args):
         print(f"{args.experim_name} Epoch {epoch+1}:")
         recorder = Recorder(['train_miou', 'train_acc', 'train_loss',
                              'val_miou', 'val_acc', 'val_loss'])
-        train_loss, train_acc, train_miou = train_epoch(
+        train_loss, train_acc, train_miou, train_ious = train_epoch(
             model=model,
             dataloader=train_loader,
             n_classes=args.n_classes,
@@ -74,7 +54,7 @@ def train(args):
             device=args.device,
         )
         print(f"train | mIoU: {train_miou:.3f} | accuracy: {train_acc:.3f} | loss: {train_loss:.3f}")
-        val_loss, val_acc, val_miou, val_ious = evaluate(
+        val_loss, val_acc, val_miou, val_ious = eval_epoch(
             model=model,
             dataloader=val_loader,
             n_classes=args.n_classes,
@@ -84,7 +64,8 @@ def train(args):
         print(f"valid | mIoU: {val_miou:.3f} | accuracy: {val_acc:.3f} | loss: {val_loss:.3f}")
         recorder.update([train_miou, train_acc, train_loss, val_miou, val_acc, val_loss])
         recorder.save(args.record_path)
-        model_saver.save_models(val_miou, epoch+1, args, model, val_ious)
+        model_saver.save_models(val_miou, epoch+1, args, model,
+                                ious={'train': train_ious, 'val': val_ious})
 
     print(f"best miou model at epoch {model_saver.best_miou_epoch} with miou {model_saver.best_score:.5f}")
     print(f"early_stop model at epoch {model_saver.early_stop_epoch} with miou {model_saver.early_stop_score:.5f}")

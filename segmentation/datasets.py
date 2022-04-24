@@ -124,6 +124,7 @@ class FolderDataset(DatasetTemplate):
 
 
 def get_list_of_ops(args, library):
+    if args is None: return []
     ops = []
     for func_name in args:
         func = getattr(library, func_name)
