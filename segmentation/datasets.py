@@ -124,6 +124,7 @@ class FolderDataset(DatasetTemplate):
 
 
 def get_list_of_ops(args, library):
+    if args is None: return []
     ops = []
     for func_name in args:
         func = getattr(library, func_name)
@@ -236,7 +237,10 @@ def get_dataloaders(args):
 
 if __name__ == '__main__':
     from .args import Arguments
+    import sys
+    sys.argv.extend(['--config', 'test_aug.yaml'])
     parser = Arguments()
-    args = parser.parse_args()
+    args = parser.parse_args(use_random_seed=False)
+    args.train_repeat = 1
     train_loader, val_loader, test_loader = get_dataloaders(args)
     visualize_augmentations(train_loader.dataset, idx=0, n_samples=5)

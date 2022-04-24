@@ -24,15 +24,15 @@ ignore_index: -1
 # data augmentation
 augmentations:
   Flip: {p: 0.5}
-  ShiftScaleRotate: {shift_limit: 0, scale_limit: [0,0.2], rotate_limit: 45, p: 0.7}
-  RandomBrightnessContrast: {brightness_limit: 0.2, contrast_limit: 0.3, p: 0.7}
+  ShiftScaleRotate: {shift_limit: 0, scale_limit: [0,1], rotate_limit: 45, p: 0.8}
+  RandomBrightnessContrast: {brightness_limit: 0.2, contrast_limit: 0.3, p: 0.8}
 
 # training
-n_epochs: 100
+n_epochs: 150
 train_repeat: 8
 batch_size: 4
 lr: 0.0001
 lr_scheduler:
   type: CAWR
   params: {T_0: 32, eta_min: 1.e-6}
-early_stop_patience: 10
+early_stop_patience: 20

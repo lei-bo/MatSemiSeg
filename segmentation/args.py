@@ -16,7 +16,7 @@ class Arguments:
         parser.add_argument("--seed", type=int, default=42)
         self.parser = parser
 
-    def parse_args(self):
+    def parse_args(self, verbose=False, use_random_seed=True):
         args = self.parser.parse_args()
         args.device = torch.device(f'cuda:{args.gpu_id}' if torch.cuda.is_available() else 'cpu')
 
@@ -41,18 +41,28 @@ class Arguments:
         args.experim_name = args.config.split('.')[0]
         args.checkpoints_dir = f"{args.root}/segmentation/checkpoints/{args.dataset}/{args.experim_name}"
         os.makedirs(args.checkpoints_dir, exist_ok=True)
-        args.model_path = Namespace(**{"early_stop": f"{args.checkpoints_dir}/early_stop.pth",
-                                       "best_miou": f"{args.checkpoints_dir}/best_miou.pth"})
+        args.model_path = Namespace(
+            **{"early_stop": f"{args.checkpoints_dir}/early_stop.pth",
+               "best_miou": f"{args.checkpoints_dir}/best_miou.pth"})
         args.record_path = f"{args.checkpoints_dir}/train_record.csv"
 
         # set seed
-        random.seed(args.seed)
-        np.random.seed(args.seed)
-        torch.manual_seed(args.seed)
+        if use_random_seed:
+            random.seed(args.seed)
+            np.random.seed(args.seed)
+            torch.manual_seed(args.seed)
+
+        if verbose:
+            self.print_args(args)
         return args
+
+    @staticmethod
+    def print_args(args):
+        print(f"Configurations\n{'=' * 50}")
+        [print(k, ':', v) for k, v in vars(args).items()]
+        print('=' * 50)
 
 
 if __name__ == '__main__':
     arg_parser = Arguments()
-    args = arg_parser.parse_args()
-    [print(k, ':', v) for k, v in vars(args).items()]
+    args = arg_parser.parse_args(verbose=True)
