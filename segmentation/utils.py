@@ -141,3 +141,14 @@ class LRScheduler:
         else:
             if last_batch:
                 self.lr_scheduler.step()
+
+
+def get_optimizer(model, args):
+    list_params = [{'params': model.encoder.parameters(),
+                    'lr': args.encoder_lr,
+                    'weight_decay': 1e-4},
+                   {'params': model.decoder.parameters(),
+                    'lr': args.decoder_lr,
+                    'weight_decay': 1e-4}]
+    optimizer = optim.Adam(list_params)
+    return optimizer

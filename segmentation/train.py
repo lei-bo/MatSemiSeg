@@ -1,12 +1,11 @@
 import torch.nn as nn
-from torch.optim import Adam
 from tqdm import tqdm
 
 from .args import Arguments
 from .UNet import UNetVgg16
 from .datasets import get_dataloaders
 from .eval import eval_epoch
-from .utils import AverageMeter, ScoreMeter, Recorder, ModelSaver, LRScheduler
+from .utils import AverageMeter, ScoreMeter, Recorder, ModelSaver, LRScheduler, get_optimizer
 
 
 def train_epoch(model, dataloader, n_classes, optimizer, lr_scheduler, criterion, device):
@@ -36,7 +35,7 @@ def train_epoch(model, dataloader, n_classes, optimizer, lr_scheduler, criterion
 def train(args):
     train_loader, val_loader, _ = get_dataloaders(args)
     model = UNetVgg16(n_classes=args.n_classes).to(args.device)
-    optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=1e-4)
+    optimizer = get_optimizer(model, args)
     lr_scheduler = LRScheduler(args.lr_scheduler, optimizer)
     criterion = nn.CrossEntropyLoss(ignore_index=args.ignore_index).to(args.device)
     model_saver = ModelSaver(args.model_path, args.early_stop_patience)

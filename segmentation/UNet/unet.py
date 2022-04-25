@@ -46,6 +46,10 @@ class UNetVgg16(nn.Module):
         self.up3 = Up(256, 64)
         self.up4 = Up(128, 64)
         self.outc = OutConv(64, n_classes)
+        self.encoder = nn.ModuleList([self.inc, self.down1, self.down2,
+                                      self.down3, self.down4])
+        self.decoder = nn.ModuleList([self.up1, self.up2, self.up3,
+                                      self.up4, self.outc])
 
     def forward(self, x):
         x1 = self.inc(x)

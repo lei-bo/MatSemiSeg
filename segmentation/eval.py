@@ -43,7 +43,7 @@ def evaluate(args, mode, model_type):
         model_path = args.model_path.early_stop
     else:
         raise ValueError(f"{model_type} not supported. Choose from 'best_miou' or 'early_stop'")
-    model.load_state_dict(torch.load(model_path)['model_state_dict'])
+    model.load_state_dict(torch.load(model_path)['model_state_dict'], strict=False)
     criterion = nn.CrossEntropyLoss(ignore_index=args.ignore_index).to(args.device)
     eval_loss, eval_acc, eval_miou, eval_ious = eval_epoch(
         model=model,
