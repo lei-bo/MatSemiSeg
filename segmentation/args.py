@@ -29,7 +29,9 @@ class Arguments:
         args.update(default_config)
         args.update(config)
         args['split_info'] = Namespace(**args['split_info'])
-        args['lr_scheduler'] = Namespace(**args['lr_scheduler'])
+        args['optimizer'] = Namespace(**args['optimizer'])
+        if args['lr_scheduler']:
+            args['lr_scheduler'] = Namespace(**args['lr_scheduler'])
         args = Namespace(**args)
 
         # compile basic information

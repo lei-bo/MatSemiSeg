@@ -121,14 +121,20 @@ class ModelSaver:
 class LRScheduler:
     LR_SCHEDULER_MAP = {
         'CAWR': optim.lr_scheduler.CosineAnnealingWarmRestarts,
-        'MultiStepLR': optim.lr_scheduler.MultiStepLR
+        'MultiStepLR': optim.lr_scheduler.MultiStepLR,
+        'CyclicLR': optim.lr_scheduler.CyclicLR,
+        'OneCycleLR': optim.lr_scheduler.OneCycleLR
     }
-    STEP_EVERY_BATCH = ('CAWR',)
+    STEP_EVERY_BATCH = ('CAWR', 'CyclicLR', 'OneCycleLR')
 
     def __init__(self, lr_scheduler_args, optimizer):
         args = lr_scheduler_args
+        self.no_scheduler = False
+        if args is None:
+            self.no_scheduler = True
+            return
         if args.type not in self.LR_SCHEDULER_MAP:
-            raise ValueError(f"unsupported lr_scheduler: {args.type}")
+            raise ValueError(f"unsupported lr scheduler: {args.type}")
         else:
             self.lr_scheduler = self.LR_SCHEDULER_MAP[args.type](
                 optimizer, **args.params
@@ -136,6 +142,8 @@ class LRScheduler:
         self.step_every_batch = args.type in self.STEP_EVERY_BATCH
 
     def step(self, last_batch=False):
+        if self.no_scheduler:
+            return
         if self.step_every_batch:
             self.lr_scheduler.step()
         else:
@@ -143,12 +151,20 @@ class LRScheduler:
                 self.lr_scheduler.step()
 
 
-def get_optimizer(model, args):
+def get_optimizer(optimizer_args, model):
+    args = optimizer_args
     list_params = [{'params': model.encoder.parameters(),
                     'lr': args.encoder_lr,
-                    'weight_decay': 1e-4},
+                    'weight_decay': args.weight_decay},
                    {'params': model.decoder.parameters(),
                     'lr': args.decoder_lr,
-                    'weight_decay': 1e-4}]
-    optimizer = optim.Adam(list_params)
+                    'weight_decay': args.weight_decay}]
+    if args.type == 'Adam':
+        optimizer = optim.Adam(list_params)
+    elif args.type == 'AdamW':
+        optimizer = optim.AdamW(list_params)
+    elif args.type == 'SGD':
+        optimizer = optim.SGD(list_params)
+    else:
+        raise ValueError(f"unsupported optimizer: {args.type}")
     return optimizer

@@ -44,30 +44,26 @@ class CrossValidation:
             Arguments.print_args(args_i)
             train(args_i)
 
-    def validate(self, model_type):
-        mious_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
+    def evaluate(self, is_test=False):
+        best_mious_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
+        es_mious_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
         for i in range(self.n_cross_valid):
             args_i = self.update_args(self.args, i)
-            if model_type == 'best_miou':
-                model_path = args_i.model_path.best_miou
-            elif model_type == 'early_stop':
-                model_path = args_i.model_path.early_stop
+            if is_test:
+                _, best_ious = evaluate(args_i, mode='test', model_type='best_miou')
+                _, es_ious = evaluate(args_i, mode='test', model_type='early_stop')
             else:
-                raise ValueError
-            val_ious = torch.load(model_path)['ious']['val']
-            mious_cv[i, :] = val_ious
-        print_mean_std(mious_cv)
-
-    def test(self, model_type):
-        mious_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
-        for i in range(self.n_cross_valid):
-            args_i = self.update_args(self.args, i)
-            test_miou, test_ious = evaluate(args_i, mode='test', model_type=model_type)
-            mious_cv[i, :] = test_ious
-        print_mean_std(mious_cv)
+                best_ious = torch.load(args_i.model_path.best_miou)['ious']['val']
+                es_ious = torch.load(args_i.model_path.early_stop)['ious']['val']
+            best_mious_cv[i, :] = best_ious
+            es_mious_cv[i, :] = es_ious
+        title = 'test' if is_test else 'validate'
+        print_mean_std(best_mious_cv, f"{title} best_mious")
+        print_mean_std(es_mious_cv, f"{title} early_stop")
 
 
-def print_mean_std(arr):
+def print_mean_std(arr, title=None):
+    print(title)
     fmt = lambda x: np.round(x * 100, 1)
     mean = arr.mean(axis=0)
     std = arr.std(axis=0)
@@ -81,13 +77,11 @@ if __name__ == '__main__':
     arg_parser.parser.add_argument('--mode', '-m',
                                    choices=['train', 'val', 'test'],
                                    required=True)
-    arg_parser.parser.add_argument('--model_type', default='best_miou',
-                                   choices=['best_miou', 'early_stop'])
     args = arg_parser.parse_args()
     cv = CrossValidation(args)
     if args.mode == 'train':
         cv.train()
     elif args.mode == 'val':
-        cv.validate(args.model_type)
+        cv.evaluate(is_test=False)
     elif args.mode == 'test':
-        cv.test(args.model_type)
+        cv.evaluate(is_test=True)

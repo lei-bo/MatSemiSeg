@@ -35,7 +35,7 @@ def train_epoch(model, dataloader, n_classes, optimizer, lr_scheduler, criterion
 def train(args):
     train_loader, val_loader, _ = get_dataloaders(args)
     model = UNetVgg16(n_classes=args.n_classes).to(args.device)
-    optimizer = get_optimizer(model, args)
+    optimizer = get_optimizer(args.optimizer, model)
     lr_scheduler = LRScheduler(args.lr_scheduler, optimizer)
     criterion = nn.CrossEntropyLoss(ignore_index=args.ignore_index).to(args.device)
     model_saver = ModelSaver(args.model_path, args.early_stop_patience)
