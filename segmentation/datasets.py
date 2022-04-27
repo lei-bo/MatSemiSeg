@@ -79,7 +79,7 @@ class CSVSplitDataset(DatasetTemplate):
         defaults to False
         """
         super().__init__(img_dir, label_dir, transform)
-        if isinstance(split_num, int):
+        if isinstance(split_num, (int, np.int64)):
             split_num = [split_num]
         df = pd.read_csv(split_csv)
         if reverse:
@@ -190,9 +190,13 @@ def get_dataloaders(args):
     s_info = args.split_info
     if s_info.type == "CSVSplit":
         split_file_path = f"{args.dataset_root}/splits/{s_info.split_file}"
+        if s_info.train_reverse:
+            train_split_num = [s_info.val_split_num, s_info.test_split_num]
+        else:
+            train_split_num = s_info.train_split_num
         train_set = CSVSplitDataset(args.img_dir, args.label_dir,
                                     split_csv=split_file_path,
-                                    split_num=[s_info.val_split_num, s_info.test_split_num],
+                                    split_num=train_split_num,
                                     transform=transform_train,
                                     split_col_name=s_info.split_col_name,
                                     reverse=s_info.train_reverse)

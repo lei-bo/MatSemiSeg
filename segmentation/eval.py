@@ -13,7 +13,7 @@ def eval_epoch(model, dataloader, n_classes, criterion, device):
     model.eval()
     loss_meter = AverageMeter()
     score_meter = ScoreMeter(n_classes)
-    for inputs, labels, _ in tqdm(dataloader):
+    for inputs, labels, _ in tqdm(dataloader, ncols=0, leave=False):
         inputs, labels = inputs.to(device), labels.long().to(device)
         # forward
         outputs = model(inputs)
@@ -58,8 +58,8 @@ def evaluate(args, mode, model_type):
 
 if __name__ == '__main__':
     arg_parser = Arguments()
-    arg_parser.parser.add_argument('--mode', '-m', default='val',
-                                   choices=['val', 'test'])
+    arg_parser.parser.add_argument('--mode', '-m', choices=['val', 'test'],
+                                   required=True)
     arg_parser.parser.add_argument('--model_type', default='best_miou',
                                    choices=['best_miou', 'early_stop'])
     args = arg_parser.parse_args()

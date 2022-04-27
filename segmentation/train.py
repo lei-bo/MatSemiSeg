@@ -12,7 +12,7 @@ def train_epoch(model, dataloader, n_classes, optimizer, lr_scheduler, criterion
     model.train()
     loss_meter = AverageMeter()
     score_meter = ScoreMeter(n_classes)
-    for i, (inputs, labels, _) in enumerate(tqdm(dataloader)):
+    for i, (inputs, labels, _) in enumerate(tqdm(dataloader, ncols=0, leave=False)):
         inputs, labels = inputs.to(device), labels.long().to(device)
         # forward
         outputs = model(inputs)
@@ -33,6 +33,7 @@ def train_epoch(model, dataloader, n_classes, optimizer, lr_scheduler, criterion
 
 
 def train(args):
+    Arguments.save_args(args, args.args_path)
     train_loader, val_loader, _ = get_dataloaders(args)
     model = UNetVgg16(n_classes=args.n_classes).to(args.device)
     optimizer = get_optimizer(args.optimizer, model)
@@ -63,7 +64,7 @@ def train(args):
         print(f"valid | mIoU: {val_miou:.3f} | accuracy: {val_acc:.3f} | loss: {val_loss:.3f}")
         recorder.update([train_miou, train_acc, train_loss, val_miou, val_acc, val_loss])
         recorder.save(args.record_path)
-        model_saver.save_models(val_miou, epoch+1, args, model,
+        model_saver.save_models(val_miou, epoch+1, model,
                                 ious={'train': train_ious, 'val': val_ious})
 
     print(f"best miou model at epoch {model_saver.best_miou_epoch} with miou {model_saver.best_score:.5f}")
@@ -72,5 +73,5 @@ def train(args):
 
 if __name__ == '__main__':
     arg_parser = Arguments()
-    args = arg_parser.parse_args()
+    args = arg_parser.parse_args(verbose=True)
     train(args)

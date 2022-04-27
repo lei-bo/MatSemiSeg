@@ -14,14 +14,17 @@ class CrossValidation:
     val_splits = [1, 2, 3, 4, 5, 0]
     test_splits = [0, 1, 2, 3, 4, 5]
     n_cross_valid = len(val_splits)
+    split_file = 'split_cv.csv'
+    split_col_name = 'split'
+    train_reverse = True
 
     def __init__(self, args):
         s_info = args.split_info
         s_info.type = 'CSVSplit'
         s_info.test_type = 'CSVSplit'
-        s_info.split_file = 'split_6fold.csv'
-        s_info.split_col_name = 'split'
-        s_info.train_reverse = True
+        s_info.split_file = self.split_file
+        s_info.split_col_name = self.split_col_name
+        s_info.train_reverse = self.train_reverse
         self.args = args
 
     @classmethod
@@ -36,6 +39,7 @@ class CrossValidation:
             **{"early_stop": f"{args_i.checkpoints_dir}/early_stop.pth",
                "best_miou": f"{args_i.checkpoints_dir}/best_miou.pth"})
         args_i.record_path = f"{args_i.checkpoints_dir}/train_record.csv"
+        args_i.args_path = f"{args_i.checkpoints_dir}/args.yaml"
         return args_i
 
     def train(self):
@@ -58,9 +62,8 @@ class CrossValidation:
             best_mious_cv[i, :] = best_ious
             es_mious_cv[i, :] = es_ious
         title = 'test' if is_test else 'validate'
-        print_mean_std(best_mious_cv, f"{title} best_mious")
-        print_mean_std(es_mious_cv, f"{title} early_stop")
-
+        print_mean_std(best_mious_cv, f"{self.args.experim_name} {title} best_mious")
+        print_mean_std(es_mious_cv, f"{self.args.experim_name} {title} early_stop")
 
 def print_mean_std(arr, title=None):
     print(title)

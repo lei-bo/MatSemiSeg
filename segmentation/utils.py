@@ -39,7 +39,7 @@ class ScoreMeter:
         precision = cm.diagonal() / (cm.sum(axis=0) + eps)
         recall = cm.diagonal() / (cm.sum(axis=1) + eps)
         fraction_error = (cm.sum(axis=0) - cm.sum(axis=1)) / cm.sum()
-        iou = cm.diagonal() / (cm.sum(axis=1) + cm.sum(axis=0) - cm.diagonal())
+        iou = cm.diagonal() / (cm.sum(axis=1) + cm.sum(axis=0) - cm.diagonal() + eps)
         acc = cm.diagonal().sum() / cm.sum()
         miou = iou.mean()
         score_dict = {
@@ -90,14 +90,14 @@ class ModelSaver:
         self.best_miou_epoch, self.early_stop_epoch = 0, 0
         self.early_stop_score = self.best_score
 
-    def save_models(self, score, epoch, args, model, ious):
+    def save_models(self, score, epoch, model, ious):
         if score > self.best_score + self.delta:
             print(f"validation iou improved from {self.best_score:.5f} to {score:.5f}.")
             self.best_score = score
-            self.save_checkpoint(self.best_miou_path, epoch, args, model, ious)
+            self.save_checkpoint(self.best_miou_path, epoch, model, ious)
             self.best_miou_epoch = epoch
             if not self.early_stop:
-                self.save_checkpoint(self.early_stop_path, epoch, args, model, ious)
+                self.save_checkpoint(self.early_stop_path, epoch, model, ious)
                 self.early_stop_epoch = epoch
                 self.early_stop_score = score
                 self.counter = 0
@@ -109,10 +109,9 @@ class ModelSaver:
                     self.early_stop = True
 
     @staticmethod
-    def save_checkpoint(path, epoch, args, model, ious):
+    def save_checkpoint(path, epoch, model, ious):
         torch.save({
             'epoch': epoch,
-            'args': args,
             'model_state_dict': model.state_dict(),
             'ious': ious
         }, path)

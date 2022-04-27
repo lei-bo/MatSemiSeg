@@ -40,13 +40,14 @@ class Arguments:
         args.img_dir = f"{args.dataset_root}/{args.img_folder}"
         args.label_dir = f"{args.dataset_root}/{args.label_folder}"
 
-        args.experim_name = args.config.split('.')[0]
+        args.experim_name = os.path.basename(args.config).split('.')[0]
         args.checkpoints_dir = f"{args.root}/segmentation/checkpoints/{args.dataset}/{args.experim_name}"
         os.makedirs(args.checkpoints_dir, exist_ok=True)
         args.model_path = Namespace(
             **{"early_stop": f"{args.checkpoints_dir}/early_stop.pth",
                "best_miou": f"{args.checkpoints_dir}/best_miou.pth"})
         args.record_path = f"{args.checkpoints_dir}/train_record.csv"
+        args.args_path = f"{args.checkpoints_dir}/args.yaml"
 
         # set seed
         if use_random_seed:
@@ -63,6 +64,11 @@ class Arguments:
         print(f"Configurations\n{'=' * 50}")
         [print(k, ':', v) for k, v in vars(args).items()]
         print('=' * 50)
+
+    @staticmethod
+    def save_args(args, path):
+        with open(path, 'w') as file:
+            yaml.dump(vars(args), file)
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ n_classes: 4
 split_info:
   type: CSVSplit
   test_type: CSVSplit
-  split_file: split_6fold.csv
+  split_file: split_cv.csv
   split_col_name: split
   val_split_num: 1
   test_split_num: 0
@@ -32,11 +32,11 @@ n_epochs: 150
 train_repeat: 8
 batch_size: 4
 optimizer:
-  type: Adam
-  encoder_lr: 1.e-4
-  decoder_lr: 1.e-4
-  weight_decay: 1.e-4
+  type: AdamW
+  encoder_lr: 5.e-5
+  decoder_lr: 5.e-4
+  weight_decay: 1.e-2
 lr_scheduler:
-  type: CAWR
-  params: {T_0: 32, eta_min: 1.e-6}
+  type: MultiStepLR
+  params: {milestones: [50, 100], gamma: 0.3}
 early_stop_patience: 20
