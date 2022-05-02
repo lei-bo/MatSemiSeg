@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 from tqdm import tqdm
 
 from .args import Arguments
@@ -9,11 +10,11 @@ from .utils import AverageMeter, ScoreMeter
 
 
 @torch.no_grad()
-def eval_epoch(model, dataloader, n_classes, criterion, device):
+def eval_epoch(model, dataloader, n_classes, criterion, device, pred_dir=None):
     model.eval()
     loss_meter = AverageMeter()
     score_meter = ScoreMeter(n_classes)
-    for inputs, labels, _ in tqdm(dataloader, ncols=0, leave=False):
+    for inputs, labels, names in tqdm(dataloader, ncols=0, leave=False):
         inputs, labels = inputs.to(device), labels.long().to(device)
         # forward
         outputs = model(inputs)
@@ -22,13 +23,16 @@ def eval_epoch(model, dataloader, n_classes, criterion, device):
         # measure
         loss_meter.update(loss.item(), inputs.size(0))
         score_meter.update(preds, labels.cpu().numpy())
+        # save predicted results
+        if pred_dir:
+            assert preds.shape[0] == 1
+            np.save(f"{pred_dir}/{names[0].split('.')[0]}.npy", preds[0])
 
     scores = score_meter.get_scores()
-    miou, ious, acc = scores['mIoU'], scores['IoUs'], scores['accuracy']
-    return loss_meter.avg, acc, miou, ious
+    return loss_meter.avg, scores
 
 
-def evaluate(args, mode, model_type):
+def evaluate(args, mode, model_type, save_pred=False):
     _, val_loader, test_loader = get_dataloaders(args)
     if mode == 'val':
         dataloader = val_loader
@@ -45,15 +49,17 @@ def evaluate(args, mode, model_type):
         raise ValueError(f"{model_type} not supported. Choose from 'best_miou' or 'early_stop'")
     model.load_state_dict(torch.load(model_path)['model_state_dict'], strict=False)
     criterion = nn.CrossEntropyLoss(ignore_index=args.ignore_index).to(args.device)
-    eval_loss, eval_acc, eval_miou, eval_ious = eval_epoch(
+    eval_loss, scores = eval_epoch(
         model=model,
         dataloader=dataloader,
         n_classes=args.n_classes,
         criterion=criterion,
-        device=args.device
+        device=args.device,
+        pred_dir=save_pred and args.pred_dir
     )
-    print(f"{mode} | mIoU: {eval_miou:.3f} | accuracy: {eval_acc:.3f} | loss: {eval_loss:.3f}")
-    return eval_miou, eval_ious
+    miou, acc = scores['mIoU'], scores['accuracy']
+    print(f"{mode} | mIoU: {miou:.3f} | accuracy: {acc:.3f} | loss: {eval_loss:.3f}")
+    return scores
 
 
 if __name__ == '__main__':

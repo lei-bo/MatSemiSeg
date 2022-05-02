@@ -1,8 +1,8 @@
 import sys
 import os
-import torch
 from argparse import Namespace
 import numpy as np
+import pickle
 
 sys.path.append("./")
 from segmentation.args import Arguments
@@ -33,13 +33,7 @@ class CrossValidation:
         args_i.split_info.val_split_num = cls.val_splits[cv_id]
         args_i.split_info.test_split_num = cls.test_splits[cv_id]
         args_i.experim_name += f"_CV{cv_id}"
-        args_i.checkpoints_dir = f"{args.checkpoints_dir}/CV{cv_id}"
-        os.makedirs(args_i.checkpoints_dir, exist_ok=True)
-        args_i.model_path = Namespace(
-            **{"early_stop": f"{args_i.checkpoints_dir}/early_stop.pth",
-               "best_miou": f"{args_i.checkpoints_dir}/best_miou.pth"})
-        args_i.record_path = f"{args_i.checkpoints_dir}/train_record.csv"
-        args_i.args_path = f"{args_i.checkpoints_dir}/args.yaml"
+        Arguments.update_checkpoints_dir(args_i, f"{args.checkpoints_dir}/CV{cv_id}")
         return args_i
 
     def train(self):
@@ -48,22 +42,26 @@ class CrossValidation:
             Arguments.print_args(args_i)
             train(args_i)
 
-    def evaluate(self, is_test=False):
+    def evaluate(self, mode='val'):
         best_mious_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
         es_mious_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
         for i in range(self.n_cross_valid):
             args_i = self.update_args(self.args, i)
-            if is_test:
-                _, best_ious = evaluate(args_i, mode='test', model_type='best_miou')
-                _, es_ious = evaluate(args_i, mode='test', model_type='early_stop')
+            result_path = args_i.test_result_path if mode == 'test' else args_i.val_result_path
+            if os.path.exists(result_path):
+                with open(result_path, 'rb') as f:
+                    result = pickle.load(f)
+                bm_scores = result['best_mious']
+                es_scores = result['early_stop']
             else:
-                best_ious = torch.load(args_i.model_path.best_miou)['ious']['val']
-                es_ious = torch.load(args_i.model_path.early_stop)['ious']['val']
-            best_mious_cv[i, :] = best_ious
-            es_mious_cv[i, :] = es_ious
-        title = 'test' if is_test else 'validate'
-        print_mean_std(best_mious_cv, f"{self.args.experim_name} {title} best_mious")
-        print_mean_std(es_mious_cv, f"{self.args.experim_name} {title} early_stop")
+                bm_scores = evaluate(args_i, mode, model_type='best_miou', save_pred=True)
+                es_scores = evaluate(args_i, mode, model_type='early_stop')
+                with open(result_path, 'wb') as f:
+                    pickle.dump({'best_mious': bm_scores, 'early_stop': es_scores}, f)
+            best_mious_cv[i, :] = bm_scores['IoUs']
+            es_mious_cv[i, :] = es_scores['IoUs']
+        print_mean_std(best_mious_cv, f"{self.args.experim_name} {mode} best_mious")
+        print_mean_std(es_mious_cv, f"{self.args.experim_name} {mode} early_stop")
 
 def print_mean_std(arr, title=None):
     print(title)
@@ -84,7 +82,5 @@ if __name__ == '__main__':
     cv = CrossValidation(args)
     if args.mode == 'train':
         cv.train()
-    elif args.mode == 'val':
-        cv.evaluate(is_test=False)
-    elif args.mode == 'test':
-        cv.evaluate(is_test=True)
+    else:
+        cv.evaluate(args.mode)

@@ -41,13 +41,8 @@ class Arguments:
         args.label_dir = f"{args.dataset_root}/{args.label_folder}"
 
         args.experim_name = os.path.basename(args.config).split('.')[0]
-        args.checkpoints_dir = f"{args.root}/segmentation/checkpoints/{args.dataset}/{args.experim_name}"
-        os.makedirs(args.checkpoints_dir, exist_ok=True)
-        args.model_path = Namespace(
-            **{"early_stop": f"{args.checkpoints_dir}/early_stop.pth",
-               "best_miou": f"{args.checkpoints_dir}/best_miou.pth"})
-        args.record_path = f"{args.checkpoints_dir}/train_record.csv"
-        args.args_path = f"{args.checkpoints_dir}/args.yaml"
+        checkpoints_dir = f"{args.root}/segmentation/checkpoints/{args.dataset}/{args.experim_name}"
+        self.update_checkpoints_dir(args, checkpoints_dir)
 
         # set seed
         if use_random_seed:
@@ -58,6 +53,20 @@ class Arguments:
         if verbose:
             self.print_args(args)
         return args
+
+    @staticmethod
+    def update_checkpoints_dir(args, checkpoints_dir):
+        args.checkpoints_dir = checkpoints_dir
+        os.makedirs(args.checkpoints_dir, exist_ok=True)
+        args.model_path = Namespace(
+            **{"early_stop": f"{args.checkpoints_dir}/early_stop.pth",
+               "best_miou": f"{args.checkpoints_dir}/best_miou.pth"})
+        args.record_path = f"{args.checkpoints_dir}/train_record.csv"
+        args.args_path = f"{args.checkpoints_dir}/args.yaml"
+        args.val_result_path = f"{args.checkpoints_dir}/val_result.pkl"
+        args.test_result_path = f"{args.checkpoints_dir}/test_result.pkl"
+        args.pred_dir = f"{args.checkpoints_dir}/predictions"
+        os.makedirs(args.pred_dir, exist_ok=True)
 
     @staticmethod
     def print_args(args):
