@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.optim as optim
+import torch.nn as nn
+import torch.nn.functional as F
 
 
 class AverageMeter:
@@ -167,3 +169,70 @@ def get_optimizer(optimizer_args, model):
     else:
         raise ValueError(f"unsupported optimizer: {args.type}")
     return optimizer
+
+
+class DiceLoss(nn.Module):
+
+    def __init__(self, ignore_index=None):
+        super().__init__()
+        self.ignore_index = ignore_index
+
+    def forward(self, output, target, eps=1e-8):
+        """
+        output logits shape is (N,C,H,W), target is (N,H,W)
+        """
+        batch_size, n_classes = output.shape[0], output.shape[1]
+        pred = F.softmax(output, dim=1).view(batch_size, n_classes, -1)
+        target = target.view(batch_size, -1)
+        if self.ignore_index is not None:
+            mask = (target != self.ignore_index)
+            pred = pred * mask.unsqueeze(1)
+            target = target * mask
+            target = F.one_hot((target * mask).to(torch.long), n_classes)  # N,H*W -> N,H*W,C
+            target = target.permute(0, 2, 1) * mask.unsqueeze(1)  # H,C,H*W
+        else:
+            target = F.one_hot(target, n_classes)
+            target = target.permute(0, 2, 1)
+        inter = (pred * target).sum(dim=[0, 2])
+        total = (pred + target).sum(dim=[0, 2])
+        dice = 2. * inter / (total + eps)
+        return 1. - dice.mean()
+
+
+class JaccardLoss(nn.Module):
+
+    def __init__(self, ignore_index=None):
+        super().__init__()
+        self.ignore_index = ignore_index
+
+    def forward(self, output, target, eps=1e-8):
+        """
+        output logits shape is (N,C,H,W), target is (N,H,W)
+        """
+        batch_size, n_classes = output.shape[0], output.shape[1]
+        pred = F.softmax(output, dim=1).view(batch_size, n_classes, -1)
+        target = target.view(batch_size, -1)
+        if self.ignore_index is not None:
+            mask = (target != self.ignore_index)
+            pred = pred * mask.unsqueeze(1)
+            target = target * mask
+            target = F.one_hot((target * mask).to(torch.long), n_classes)  # N,H*W -> N,H*W,C
+            target = target.permute(0, 2, 1) * mask.unsqueeze(1)  # H,C,H*W
+        else:
+            target = F.one_hot(target, n_classes)
+            target = target.permute(0, 2, 1)
+        inter = (pred * target).sum(dim=[0, 2])
+        union = (pred + target).sum(dim=[0, 2]) - inter
+        jaccard = inter / (union + eps)
+        return 1. - jaccard.mean()
+
+
+def get_loss_fn(loss_type, ignore_index):
+    if loss_type == 'CE':
+        return nn.CrossEntropyLoss(ignore_index=ignore_index)
+    elif loss_type == 'Dice':
+        return DiceLoss(ignore_index=ignore_index)
+    elif loss_type == 'Jaccard':
+        return JaccardLoss(ignore_index=ignore_index)
+    else:
+        raise ValueError(f"unsupported loss type: {loss_type}")

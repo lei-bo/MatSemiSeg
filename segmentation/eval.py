@@ -69,4 +69,4 @@ if __name__ == '__main__':
     arg_parser.parser.add_argument('--model_type', default='best_miou',
                                    choices=['best_miou', 'early_stop'])
     args = arg_parser.parse_args()
-    evaluate(args, args.mode, args.model_type)
+    evaluate(args, args.mode, args.model_type, save_pred=True)

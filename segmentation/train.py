@@ -5,7 +5,7 @@ from .args import Arguments
 from .UNet import UNetVgg16
 from .datasets import get_dataloaders
 from .eval import eval_epoch
-from .utils import AverageMeter, ScoreMeter, Recorder, ModelSaver, LRScheduler, get_optimizer
+from .utils import AverageMeter, ScoreMeter, Recorder, ModelSaver, LRScheduler, get_optimizer, get_loss_fn
 
 
 def train_epoch(model, dataloader, n_classes, optimizer, lr_scheduler, criterion, device):
@@ -38,7 +38,7 @@ def train(args):
     model = UNetVgg16(n_classes=args.n_classes).to(args.device)
     optimizer = get_optimizer(args.optimizer, model)
     lr_scheduler = LRScheduler(args.lr_scheduler, optimizer)
-    criterion = nn.CrossEntropyLoss(ignore_index=args.ignore_index).to(args.device)
+    criterion = get_loss_fn(args.loss_type, args.ignore_index).to(args.device)
     model_saver = ModelSaver(args.model_path, args.early_stop_patience)
     recorder = Recorder(['train_miou', 'train_acc', 'train_loss',
                          'val_miou', 'val_acc', 'val_loss'])
@@ -54,13 +54,14 @@ def train(args):
             device=args.device,
         )
         print(f"train | mIoU: {train_miou:.3f} | accuracy: {train_acc:.3f} | loss: {train_loss:.3f}")
-        val_loss, val_acc, val_miou, val_ious = eval_epoch(
+        val_loss, val_scores = eval_epoch(
             model=model,
             dataloader=val_loader,
             n_classes=args.n_classes,
             criterion=criterion,
             device=args.device,
         )
+        val_miou, val_ious, val_acc = val_scores['mIoU'], val_scores['IoUs'], val_scores['accuracy']
         print(f"valid | mIoU: {val_miou:.3f} | accuracy: {val_acc:.3f} | loss: {val_loss:.3f}")
         recorder.update([train_miou, train_acc, train_loss, val_miou, val_acc, val_loss])
         recorder.save(args.record_path)
