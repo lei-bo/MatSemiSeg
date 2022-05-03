@@ -58,9 +58,7 @@ class Arguments:
     def update_checkpoints_dir(args, checkpoints_dir):
         args.checkpoints_dir = checkpoints_dir
         os.makedirs(args.checkpoints_dir, exist_ok=True)
-        args.model_path = Namespace(
-            **{"early_stop": f"{args.checkpoints_dir}/early_stop.pth",
-               "best_miou": f"{args.checkpoints_dir}/best_miou.pth"})
+        args.model_path = f"{args.checkpoints_dir}/model.pth"
         args.record_path = f"{args.checkpoints_dir}/train_record.csv"
         args.args_path = f"{args.checkpoints_dir}/args.yaml"
         args.val_result_path = f"{args.checkpoints_dir}/val_result.pkl"

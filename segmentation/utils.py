@@ -73,50 +73,28 @@ class Recorder(object):
 
 
 class ModelSaver:
-    """A helper class to save the model with the best validation miou and save
-    the model using early stopping strategy with a given patience."""
-    def __init__(self, model_dir, patience, delta=0):
+    """A helper class to save the model with the best validation miou"""
+    def __init__(self, model_path, delta=0):
         """
-        :param model_dir: the dir to save the model to
-        :param patience: the number of epochs to wait before early stopping
+        :param model_path: the path to save the model to
         :param delta: minimum change in the monitored quantity to qualify as an
         improvement, defaults to 0
         """
-        self.best_miou_path = model_dir.best_miou
-        self.early_stop_path = model_dir.early_stop
-        self.patience = patience
-        self.counter = 0
+        self.model_path = model_path
+        self.best_epoch = 0
         self.best_score = np.NINF
-        self.early_stop = False
         self.delta = delta
-        self.best_miou_epoch, self.early_stop_epoch = 0, 0
-        self.early_stop_score = self.best_score
 
     def save_models(self, score, epoch, model, ious):
         if score > self.best_score + self.delta:
             print(f"validation iou improved from {self.best_score:.5f} to {score:.5f}.")
             self.best_score = score
-            self.save_checkpoint(self.best_miou_path, epoch, model, ious)
-            self.best_miou_epoch = epoch
-            if not self.early_stop:
-                self.save_checkpoint(self.early_stop_path, epoch, model, ious)
-                self.early_stop_epoch = epoch
-                self.early_stop_score = score
-                self.counter = 0
-        else:
-            if not self.early_stop:
-                self.counter += 1
-                if self.counter >= self.patience:
-                    print("early stopping model exceeded patience")
-                    self.early_stop = True
-
-    @staticmethod
-    def save_checkpoint(path, epoch, model, ious):
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'ious': ious
-        }, path)
+            self.best_epoch = epoch
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'ious': ious
+            }, self.model_path)
 
 
 class LRScheduler:

@@ -40,4 +40,3 @@ optimizer:
 lr_scheduler:
   type: MultiStepLR
   params: {milestones: [100], gamma: 0.3}
-early_stop_patience: 30

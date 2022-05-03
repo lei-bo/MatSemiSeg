@@ -43,25 +43,20 @@ class CrossValidation:
             train(args_i)
 
     def evaluate(self, mode='val'):
-        best_mious_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
-        es_mious_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
+        mious_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
         for i in range(self.n_cross_valid):
             args_i = self.update_args(self.args, i)
             result_path = args_i.test_result_path if mode == 'test' else args_i.val_result_path
             if os.path.exists(result_path):
                 with open(result_path, 'rb') as f:
-                    result = pickle.load(f)
-                bm_scores = result['best_mious']
-                es_scores = result['early_stop']
+                    scores = pickle.load(f)
             else:
-                bm_scores = evaluate(args_i, mode, model_type='best_miou', save_pred=True)
-                es_scores = evaluate(args_i, mode, model_type='early_stop')
+                scores = evaluate(args_i, mode, save_pred=True)
                 with open(result_path, 'wb') as f:
-                    pickle.dump({'best_mious': bm_scores, 'early_stop': es_scores}, f)
-            best_mious_cv[i, :] = bm_scores['IoUs']
-            es_mious_cv[i, :] = es_scores['IoUs']
-        print_mean_std(best_mious_cv, f"{self.args.experim_name} {mode} best_mious")
-        print_mean_std(es_mious_cv, f"{self.args.experim_name} {mode} early_stop")
+                    pickle.dump(scores, f)
+            # print(f"{scores['mIoU']:.5f}")
+            mious_cv[i, :] = scores['IoUs']
+        print_mean_std(mious_cv, f"{self.args.experim_name} {mode}")
 
 def print_mean_std(arr, title=None):
     print(title)

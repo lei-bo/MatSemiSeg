@@ -39,7 +39,7 @@ def train(args):
     optimizer = get_optimizer(args.optimizer, model)
     lr_scheduler = LRScheduler(args.lr_scheduler, optimizer)
     criterion = get_loss_fn(args.loss_type, args.ignore_index).to(args.device)
-    model_saver = ModelSaver(args.model_path, args.early_stop_patience)
+    model_saver = ModelSaver(args.model_path)
     recorder = Recorder(['train_miou', 'train_acc', 'train_loss',
                          'val_miou', 'val_acc', 'val_loss'])
     for epoch in range(args.n_epochs):
@@ -68,8 +68,7 @@ def train(args):
         model_saver.save_models(val_miou, epoch+1, model,
                                 ious={'train': train_ious, 'val': val_ious})
 
-    print(f"best miou model at epoch {model_saver.best_miou_epoch} with miou {model_saver.best_score:.5f}")
-    print(f"early_stop model at epoch {model_saver.early_stop_epoch} with miou {model_saver.early_stop_score:.5f}")
+    print(f"best model at epoch {model_saver.best_epoch} with miou {model_saver.best_score:.5f}")
 
 
 if __name__ == '__main__':

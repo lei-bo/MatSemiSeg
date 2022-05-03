@@ -32,7 +32,7 @@ def eval_epoch(model, dataloader, n_classes, criterion, device, pred_dir=None):
     return loss_meter.avg, scores
 
 
-def evaluate(args, mode, model_type, save_pred=False):
+def evaluate(args, mode, save_pred=False):
     _, val_loader, test_loader = get_dataloaders(args)
     if mode == 'val':
         dataloader = val_loader
@@ -41,13 +41,7 @@ def evaluate(args, mode, model_type, save_pred=False):
     else:
         raise ValueError(f"{mode} not supported. Choose from 'val' or 'test'")
     model = UNetVgg16(n_classes=args.n_classes).to(args.device)
-    if model_type == 'best_miou':
-        model_path = args.model_path.best_miou
-    elif model_type == 'early_stop':
-        model_path = args.model_path.early_stop
-    else:
-        raise ValueError(f"{model_type} not supported. Choose from 'best_miou' or 'early_stop'")
-    model.load_state_dict(torch.load(model_path)['model_state_dict'], strict=False)
+    model.load_state_dict(torch.load(args.model_path)['model_state_dict'], strict=False)
     criterion = nn.CrossEntropyLoss(ignore_index=args.ignore_index).to(args.device)
     eval_loss, scores = eval_epoch(
         model=model,
@@ -66,7 +60,5 @@ if __name__ == '__main__':
     arg_parser = Arguments()
     arg_parser.parser.add_argument('--mode', '-m', choices=['val', 'test'],
                                    required=True)
-    arg_parser.parser.add_argument('--model_type', default='best_miou',
-                                   choices=['best_miou', 'early_stop'])
     args = arg_parser.parse_args()
-    evaluate(args, args.mode, args.model_type, save_pred=True)
+    evaluate(args, args.mode, save_pred=True)
