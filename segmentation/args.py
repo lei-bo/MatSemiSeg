@@ -1,6 +1,7 @@
 from argparse import ArgumentParser, Namespace
 import yaml
 import os
+from os.path import splitext
 import torch
 import random
 import numpy as np
@@ -40,7 +41,7 @@ class Arguments:
         args.img_dir = f"{args.dataset_root}/{args.img_folder}"
         args.label_dir = f"{args.dataset_root}/{args.label_folder}"
 
-        args.experim_name = os.path.basename(args.config).split('.')[0]
+        args.experim_name = splitext(os.path.basename(args.config))[0]
         checkpoints_dir = f"{args.root}/segmentation/checkpoints/{args.dataset}/{args.experim_name}"
         self.update_checkpoints_dir(args, checkpoints_dir)
 

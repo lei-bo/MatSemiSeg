@@ -50,7 +50,7 @@ class Selector:
             print("--- computing VLAD representations ---")
             vlads = self.compute_vlads()
         else:
-            vlads = self.get_vlads_from_save()
+            vlads = self.load_vlads()
         selected = self.select_from_vlads(vlads)
         print("selected images: ", selected)
         return selected
@@ -97,7 +97,7 @@ class Selector:
                 vlads.append(vlad_repr.flatten())
         return np.vstack(vlads)
 
-    def get_vlads_from_save(self):
+    def load_vlads(self):
         vlads = []
         for _, name in self.dataloader:
             vlad_save_path = f"{self.vlad_save_dir}/{splitext(name[0])[0]}.npy"

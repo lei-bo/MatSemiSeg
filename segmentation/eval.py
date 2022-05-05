@@ -26,7 +26,8 @@ def eval_epoch(model, dataloader, n_classes, criterion, device, pred_dir=None):
         # save predicted results
         if pred_dir:
             assert preds.shape[0] == 1
-            np.save(f"{pred_dir}/{names[0].split('.')[0]}.npy", preds[0])
+            np.save(f"{pred_dir}/{names[0].split('.')[0]}.npy",
+                    preds[0].astype(np.int8))
 
     scores = score_meter.get_scores()
     return loss_meter.avg, scores
