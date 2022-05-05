@@ -33,12 +33,14 @@ def milp_optimize(sim_matrix: np.ndarray, k: int) -> np.ndarray:
     return np.where(np.isclose(x.value, 1))[0]
 
 
-def brute_force_search(sim_matrix, k):
-    best_sim = 0
+def brute_force_search(sim_matrix, k, id_choices=None):
+    best_sim = np.NINF
     selection = tuple()
     n = sim_matrix.shape[0]
     indices = set(np.arange(n))
     for subset in itertools.combinations(indices, k):
+        if id_choices and not set(subset).issubset(set(id_choices)):
+            continue
         remainder = tuple(indices.difference(subset))
         sim = sim_matrix[subset, :][:, remainder].max(axis=0).sum()
         if sim > best_sim:

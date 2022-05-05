@@ -11,20 +11,21 @@ from argparse import ArgumentParser
 from .encoder import HypercolumnVgg
 from .vlad import VLAD
 from .optimization import milp_optimize, brute_force_search
-from .datasets import CSVSplitDataset, TextSplitDataset
+from .datasets import DatasetTemplate, CSVSplitDataset, TextSplitDataset
 
 
 class Selector:
     def __init__(self,
-                 dataset: Dataset,
+                 dataset: DatasetTemplate,
                  n_select: int,
                  vlad_save_dir: str,
                  n_samples_per_image: int = 20000,
                  n_words: int = 64,
                  pca_dim: int = 128,
-                 device = 'cuda'):
+                 device: str = 'cuda'):
 
         self.dataloader = DataLoader(dataset, batch_size=1)
+        self.img_names = np.array(dataset.img_names)
         self.vlad_save_dir = vlad_save_dir
         self.n_select = n_select
         self.n_samples_per_image = n_samples_per_image
@@ -47,15 +48,15 @@ class Selector:
             self.vlad.fit_pca_kmeans(samples)
             print(" finished!")
             print("--- computing VLAD representations ---")
-            vlads, img_names = self.compute_vlads()
+            vlads = self.compute_vlads()
         else:
-            vlads, img_names = self.get_vlads_from_save()
-        selected = self.select_from_vlads(vlads, img_names)
+            vlads = self.get_vlads_from_save()
+        selected = self.select_from_vlads(vlads)
         print("selected images: ", selected)
         return selected
 
     @abstractmethod
-    def select_from_vlads(self, vlads, img_names):
+    def select_from_vlads(self, vlads):
         raise NotImplementedError
 
     def sample_cnn_embedding(self):
@@ -82,7 +83,7 @@ class Selector:
         return np.vstack(embeddings_sample)
 
     def compute_vlads(self):
-        img_names, vlads = [], []
+        vlads = []
         with torch.no_grad():
             for inputs, names in tqdm(self.dataloader):
                 inputs = inputs.to(self.device)
@@ -94,23 +95,21 @@ class Selector:
                 np.save(vlad_save_path, vlad_repr)
                 vlad_repr = vlad_repr / np.linalg.norm(vlad_repr)
                 vlads.append(vlad_repr.flatten())
-                img_names.append(names[0])
-        return np.vstack(vlads), np.array(img_names)
+        return np.vstack(vlads)
 
     def get_vlads_from_save(self):
-        img_names, vlads = [], []
+        vlads = []
         for _, name in self.dataloader:
             vlad_save_path = f"{self.vlad_save_dir}/{splitext(name[0])[0]}.npy"
             vlad_repr = np.load(vlad_save_path)
             vlad_repr = vlad_repr / np.linalg.norm(vlad_repr)
             vlads.append(vlad_repr.flatten())
-            img_names.append(name[0])
-        return np.vstack(vlads), np.array(img_names)
+        return np.vstack(vlads)
 
 
 class MaxSimSelector(Selector):
     def __init__(self,
-                 dataset: Dataset,
+                 dataset: DatasetTemplate,
                  n_select: int,
                  vlad_save_dir: str,
                  n_samples_per_image: int = 20000,
@@ -123,7 +122,7 @@ class MaxSimSelector(Selector):
                          n_samples_per_image, n_words, pca_dim, device)
         self.solver = solver
 
-    def select_from_vlads(self, vlads, img_names):
+    def select_from_vlads(self, vlads):
         similarities = np.zeros((vlads.shape[0], vlads.shape[0]))
         for i in range(vlads.shape[0]):
             similarities[i, :] = vlads @ vlads[i]
@@ -132,12 +131,12 @@ class MaxSimSelector(Selector):
             selected_ids = milp_optimize(similarities, self.n_select)
         else:
             selected_ids = brute_force_search(similarities, self.n_select)
-        return img_names[selected_ids]
+        return self.img_names[selected_ids]
 
 
 class ClusterSelector(Selector):
     def __init__(self,
-                 dataset: Dataset,
+                 dataset: DatasetTemplate,
                  n_select: int,
                  vlad_save_dir: str,
                  n_samples_per_image: int = 20000,
@@ -155,7 +154,7 @@ class ClusterSelector(Selector):
         else:
             raise NotImplementedError(method)
 
-    def select_from_vlads(self, vlads, img_names):
+    def select_from_vlads(self, vlads):
         cluster_ids = self.cluster.fit_predict(vlads)
         selected_ids = []
         for i in range(self.n_select):
@@ -164,30 +163,77 @@ class ClusterSelector(Selector):
             sims = vlads_i @ vlads_i.T
             selected_id = img_ids[np.argmax(sims.sum(axis=1))]
             selected_ids.append(selected_id)
-        print(img_names[selected_ids])
+        return self.img_names[selected_ids]
 
 
-class RandomSelector:
-    def __init__(self, dataset: Dataset, n_select: int, seed: int=42):
-        self.dataloader = DataLoader(dataset, batch_size=1)
-        self.n_select = n_select
-        np.random.seed(seed)
+class AddSimSelector(Selector):
+    def __init__(self,
+                 dataset: DatasetTemplate,
+                 n_select: int,
+                 vlad_save_dir: str,
+                 n_samples_per_image: int = 20000,
+                 n_words: int = 64,
+                 pca_dim: int = 128,
+                 device: str = 'cuda',
+                 choices_txt_path: str = None):
 
-    def select(self):
-        img_names = []
-        for _, names in self.dataloader:
-            img_names.append(names[0])
-        selected = np.random.choice(img_names, self.n_select, replace=False)
-        print("selected images: ", selected)
+        super().__init__(dataset, n_select, vlad_save_dir,
+                         n_samples_per_image, n_words, pca_dim, device)
+        if choices_txt_path:
+            img_choices = np.loadtxt(choices_txt_path, dtype=str, ndmin=1)
+            self.id_choices = [i for i in range(len(self.img_names))
+                               if self.img_names[i] in img_choices]
+        else:
+            self.id_choices = None
+
+    def select_from_vlads(self, vlads):
+        similarities = np.zeros((vlads.shape[0], vlads.shape[0]))
+        for i in range(vlads.shape[0]):
+            similarities[i, :] = vlads @ vlads[i]
+        selected_ids = list(brute_force_search(similarities, 1, self.id_choices))
+        for _ in range(self.n_select-1):
+            selected_ids.append(self.search_next(similarities, selected_ids))
+        return self.img_names[selected_ids]
+
+    def search_next(self, similarities, selected_ids):
+        indices = set(np.arange(similarities.shape[0]))
+        remainder = list(indices.difference(selected_ids))
+        best_score = np.NINF
+        selected = None
+        for i in remainder:
+            if self.id_choices is not None and i not in self.id_choices:
+                continue
+            sim2selected = similarities[i, selected_ids].mean()
+            sim2unselected = similarities[i, remainder].mean()
+            score = sim2unselected - 0.1*sim2selected
+            if score > best_score:
+                best_score = score
+                selected = i
         return selected
 
 
-class Args:
-    def __init__(self):
-        self.dataset = 'uhcs'
-        self.split_csv = 'split_cv.csv'
-        self.test_split = 0
-        self.validate_split = 1
+class RandomSelector:
+    def __init__(self, dataset: DatasetTemplate, n_select: int, seed: int=42,
+                 choices_txt_path: str = None):
+        self.dataloader = DataLoader(dataset, batch_size=1)
+        self.img_names = dataset.img_names
+        self.n_select = n_select
+        if choices_txt_path is not None:
+            self.img_choices = set(np.loadtxt(choices_txt_path, dtype=str, ndmin=1))
+        else:
+            self.img_choices = None
+        np.random.seed(seed)
+
+    def select(self):
+        selected = np.random.choice(self.img_names, self.n_select,
+                                    replace=False)
+        if self.img_choices is not None:
+            while not set(selected).issubset(self.img_choices):
+                selected = np.random.choice(self.img_names, self.n_select,
+                                            replace=False)
+
+        print("selected images: ", selected)
+        return selected
 
 
 if __name__ == '__main__':
@@ -197,8 +243,8 @@ if __name__ == '__main__':
     arg_parser.add_argument("--csv_split_col", default="split")
     arg_parser.add_argument("--csv_split_num", default=0)
     arg_parser.add_argument("--n_select", type=int, required=True)
-    arg_parser.add_argument("--method", default='sim',
-                            choices=['sim', 'cluster', 'random'])
+    arg_parser.add_argument("--method", default='maxsim',
+                            choices=['maxsim', 'cluster', 'random', 'addsim'])
     arg_parser.add_argument("--n_samples_per_image", type=int, default=20000)
     arg_parser.add_argument("--pca_dim", type=int, default=128)
     arg_parser.add_argument("--n_words", type=int, default=64)
@@ -226,10 +272,14 @@ if __name__ == '__main__':
         raise ValueError(f"unsupported split file type: {args.split_file}")
 
     assert len(dataset) >= args.n_select, "select more than the total number of images"
-    if args.method == 'sim':
+    if args.method == 'maxsim':
         selector = MaxSimSelector(dataset, args.n_select, vlad_save_dir,
                                   args.n_samples_per_image, args.n_words,
                                   args.pca_dim, "MILP", args.device)
+    elif args.method == 'addsim':
+        selector = AddSimSelector(dataset, args.n_select, vlad_save_dir,
+                                  args.n_samples_per_image, args.n_words,
+                                  args.pca_dim, args.device)
     elif args.method == 'cluster':
         selector = ClusterSelector(dataset, args.n_select, vlad_save_dir,
                                    args.n_samples_per_image, args.n_words,
@@ -238,4 +288,5 @@ if __name__ == '__main__':
         selector = RandomSelector(dataset, args.n_select, args.seed)
     else:
         raise ValueError(f"unsupported method {args.method}")
-    selector.select()
+    selected = selector.select()
+    np.savetxt(f"./data/{args.dataset}/splits/{args.method}_select_{args.n_select}.txt", selected, fmt='%s')

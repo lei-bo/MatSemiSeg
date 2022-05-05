@@ -13,6 +13,9 @@ split_info:
   val_split_num: 1
   test_split_num: 0
   train_reverse: True
+cross_validation:
+  val_splits: [1, 2, 3, 4, 5, 0]
+  test_splits: [0, 1, 2, 3, 4, 5]
 
 # data information
 train_size: [224, 224]

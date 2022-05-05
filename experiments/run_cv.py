@@ -11,9 +11,6 @@ from segmentation.eval import evaluate
 
 
 class CrossValidation:
-    val_splits = [1, 2, 3, 4, 5, 0]
-    test_splits = [0, 1, 2, 3, 4, 5]
-    n_cross_valid = len(val_splits)
     split_file = 'split_cv.csv'
     split_col_name = 'split'
     train_reverse = True
@@ -25,13 +22,16 @@ class CrossValidation:
         s_info.split_file = self.split_file
         s_info.split_col_name = self.split_col_name
         s_info.train_reverse = self.train_reverse
+        self.val_splits = args.cross_validation['val_splits']
+        self.test_splits = args.cross_validation['test_splits']
+        self.n_cross_valid = len(self.val_splits)
         self.args = args
 
     @classmethod
     def update_args(cls, args, cv_id):
         args_i = Namespace(**vars(args))
-        args_i.split_info.val_split_num = cls.val_splits[cv_id]
-        args_i.split_info.test_split_num = cls.test_splits[cv_id]
+        args_i.split_info.val_split_num = args.cross_validation['val_splits'][cv_id]
+        args_i.split_info.test_split_num = args.cross_validation['test_splits'][cv_id]
         args_i.experim_name += f"_CV{cv_id}"
         Arguments.update_checkpoints_dir(args_i, f"{args.checkpoints_dir}/CV{cv_id}")
         return args_i
@@ -54,7 +54,7 @@ class CrossValidation:
                 scores = evaluate(args_i, mode, save_pred=True)
                 with open(result_path, 'wb') as f:
                     pickle.dump(scores, f)
-            # print(f"{scores['mIoU']:.5f}")
+            print(f"{scores['mIoU']:.5f}")
             mious_cv[i, :] = scores['IoUs']
         print_mean_std(mious_cv, f"{self.args.experim_name} {mode}")
 
