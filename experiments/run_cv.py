@@ -11,17 +11,12 @@ from segmentation.eval import evaluate
 
 
 class CrossValidation:
-    split_file = 'split_cv.csv'
-    split_col_name = 'split'
-    train_reverse = True
 
     def __init__(self, args):
         s_info = args.split_info
         s_info.type = 'CSVSplit'
         s_info.test_type = 'CSVSplit'
-        s_info.split_file = self.split_file
-        s_info.split_col_name = self.split_col_name
-        s_info.train_reverse = self.train_reverse
+        s_info.train_reverse = True
         self.val_splits = args.cross_validation['val_splits']
         self.test_splits = args.cross_validation['test_splits']
         self.n_cross_valid = len(self.val_splits)
