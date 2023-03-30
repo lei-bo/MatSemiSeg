@@ -5,6 +5,7 @@ from os.path import splitext
 import torch
 import random
 import numpy as np
+import sys
 
 
 class Arguments:
@@ -15,6 +16,7 @@ class Arguments:
         parser.add_argument("--config", default="default.yaml")
         parser.add_argument("--gpu_id", type=int, default=0)
         parser.add_argument("--seed", type=int, default=42)
+        parser.add_argument("--redirect", action="store_true")
         self.parser = parser
 
     def parse_args(self, verbose=False, use_random_seed=True):
@@ -44,6 +46,10 @@ class Arguments:
         args.experim_name = splitext(os.path.basename(args.config))[0]
         checkpoints_dir = f"{args.root}/segmentation/checkpoints/{args.dataset}/{args.experim_name}"
         self.update_checkpoints_dir(args, checkpoints_dir)
+
+        if args.redirect:
+            sys.stdout = open(f"{args.checkpoints_dir}/stdout.txt", 'w')
+            sys.stderr = open(f"{args.checkpoints_dir}/stdout.txt", 'w')
 
         # set seed
         if use_random_seed:

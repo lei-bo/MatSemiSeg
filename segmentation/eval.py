@@ -14,7 +14,7 @@ def eval_epoch(model, dataloader, n_classes, criterion, device, pred_dir=None):
     model.eval()
     loss_meter = AverageMeter()
     score_meter = ScoreMeter(n_classes)
-    for inputs, labels, names in tqdm(dataloader, ncols=0, leave=False):
+    for inputs, labels, names in dataloader:
         inputs, labels = inputs.to(device), labels.long().to(device)
         # forward
         outputs = model(inputs)
@@ -53,7 +53,7 @@ def evaluate(args, mode, save_pred=False):
         pred_dir=save_pred and args.pred_dir
     )
     miou, acc = scores['mIoU'], scores['accuracy']
-    print(f"{mode} | mIoU: {miou:.3f} | accuracy: {acc:.3f} | loss: {eval_loss:.3f}")
+    print(f"{mode} | mIoU {miou:.3f} | accuracy {acc:.3f} | loss {eval_loss:.3f}")
     return scores
 
 

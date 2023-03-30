@@ -1,0 +1,6 @@
+split_info:
+  type: TextSplit
+  test_type: TextSplit
+  train_split_file: train16A.txt
+  val_split_file: validate4A.txt
+  test_split_file: test4A.txt

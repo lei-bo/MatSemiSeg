@@ -11,7 +11,7 @@ def train_epoch(model, dataloader, n_classes, optimizer, lr_scheduler, criterion
     model.train()
     loss_meter = AverageMeter()
     score_meter = ScoreMeter(n_classes)
-    for i, (inputs, labels, _) in enumerate(tqdm(dataloader, ncols=0, leave=False)):
+    for i, (inputs, labels, _) in enumerate(dataloader):
         inputs, labels = inputs.to(device), labels.long().to(device)
         # forward
         outputs = model(inputs)
@@ -42,7 +42,6 @@ def train(args):
     recorder = Recorder(['train_miou', 'train_acc', 'train_loss',
                          'val_miou', 'val_acc', 'val_loss'])
     for epoch in range(args.n_epochs):
-        print(f"{args.experim_name} Epoch {epoch+1}:")
         train_loss, train_acc, train_miou, train_ious = train_epoch(
             model=model,
             dataloader=train_loader,
@@ -52,7 +51,6 @@ def train(args):
             criterion=criterion,
             device=args.device,
         )
-        print(f"train | mIoU: {train_miou:.3f} | accuracy: {train_acc:.3f} | loss: {train_loss:.3f}")
         val_loss, val_scores = eval_epoch(
             model=model,
             dataloader=val_loader,
@@ -61,7 +59,11 @@ def train(args):
             device=args.device,
         )
         val_miou, val_ious, val_acc = val_scores['mIoU'], val_scores['IoUs'], val_scores['accuracy']
-        print(f"valid | mIoU: {val_miou:.3f} | accuracy: {val_acc:.3f} | loss: {val_loss:.3f}")
+        if (epoch+1) % args.print_freq == 0:
+            print(f"{args.experim_name} Epoch {epoch+1} | "
+                  f"train | mIoU {train_miou:.3f} | accuracy {train_acc:.3f} | loss {train_loss:.3f} | "
+                  f"lr {optimizer.param_groups[0]['lr']:.2e}", end=' | ')
+            print(f"valid | mIoU {val_miou:.3f} | accuracy {val_acc:.3f} | loss {val_loss:.3f} | time {time.time() - start:.2f}", flush=True)
         recorder.update([train_miou, train_acc, train_loss, val_miou, val_acc, val_loss])
         recorder.save(args.record_path)
         if args.metric.startswith("IoU"):

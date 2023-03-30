@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import vgg16
+from torchvision.models import vgg16, VGG16_Weights
 
 
 class HypercolumnVgg(nn.Module):
@@ -18,7 +18,7 @@ class HypercolumnVgg(nn.Module):
         feature extraction.
         """
         super(HypercolumnVgg, self).__init__()
-        self.features = nn.ModuleList(vgg16(pretrained=True).features)
+        self.features = nn.ModuleList(vgg16(weights=VGG16_Weights.DEFAULT).features)
         self.n_conv_blocks = n_conv_blocks
         self.feature_maps_index = [3, 8, 15, 22, 29]
 

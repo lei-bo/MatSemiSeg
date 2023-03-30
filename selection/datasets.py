@@ -40,20 +40,25 @@ class CSVSplitDataset(DatasetTemplate):
     A dataset class that reads a csv split file containing (name, split) pairs
     to get the images in a specified split or the rest of the images.
     """
-    def __init__(self, img_dir: str, split_csv: str,
-                 split_num: Union[int, List[int]], reverse: bool = False):
+    def __init__(self,
+                 img_dir: str,
+                 split_csv: str,
+                 split_num: Union[int, List[int]],
+                 split_col_name: str = "split",
+                 reverse: bool = False):
         """
-        :param split_csv: the path of the csv file with (name, split) columns
+        :param split_csv: the path of the csv file containing the split information
         :param split_num: an int or a list of int specifying the split number
+        :param split_col_name: the name of the column containing the split number
         :param reverse: if true, the images not in split_num are selected
         """
         super().__init__(img_dir)
         if isinstance(split_num, int): split_num = [split_num]
         df = pd.read_csv(split_csv)
         if reverse:
-            self.img_names = list(df['name'][~df['split'].isin(split_num)])
+            self.img_names = list(df['name'][~df[split_col_name].isin(split_num)])
         else:
-            self.img_names = list(df['name'][df['split'].isin(split_num)])
+            self.img_names = list(df['name'][df[split_col_name].isin(split_num)])
 
 
 class TextSplitDataset(DatasetTemplate):
@@ -73,4 +78,7 @@ if __name__ == '__main__':
     img_dir = "./data/uhcs/images"
     split_csv = "./data/uhcs/splits/split_cv.csv"
     dataset = CSVSplitDataset(img_dir, split_csv, [0], reverse=True)
+    print(len(dataset))
+    split_csv = "./data/uhcs/splits/train16A.txt"
+    dataset = TextSplitDataset(img_dir, split_csv)
     print(len(dataset))

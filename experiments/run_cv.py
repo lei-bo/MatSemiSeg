@@ -17,9 +17,7 @@ class CrossValidation:
         s_info.type = 'CSVSplit'
         s_info.test_type = 'CSVSplit'
         s_info.train_reverse = True
-        self.val_splits = args.cross_validation['val_splits']
-        self.test_splits = args.cross_validation['test_splits']
-        self.n_cross_valid = len(self.val_splits)
+        self.n_cross_valid = len(args.cross_validation['val_splits'])
         self.args = args
 
     @classmethod
@@ -38,7 +36,8 @@ class CrossValidation:
             train(args_i)
 
     def evaluate(self, mode='val'):
-        mious_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
+        ious_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
+        ferrors_cv = np.zeros((self.n_cross_valid, self.args.n_classes))
         for i in range(self.n_cross_valid):
             args_i = self.update_args(self.args, i)
             result_path = args_i.test_result_path if mode == 'test' else args_i.val_result_path
@@ -50,8 +49,10 @@ class CrossValidation:
                 with open(result_path, 'wb') as f:
                     pickle.dump(scores, f)
             print(f"{scores['mIoU']:.5f}")
-            mious_cv[i, :] = scores['IoUs']
-        print_mean_std(mious_cv, f"{self.args.experim_name} {mode}")
+            ious_cv[i, :] = scores['IoUs']
+            ferrors_cv[i, :] = scores['fraction_error']
+        print_mean_std(ious_cv, f"{self.args.experim_name} {mode}")
+        return ious_cv, ferrors_cv
 
 def print_mean_std(arr, title=None):
     print(title)
@@ -72,5 +73,7 @@ if __name__ == '__main__':
     cv = CrossValidation(args)
     if args.mode == 'train':
         cv.train()
+        cv.evaluate('val')
+        cv.evaluate('test')
     else:
         cv.evaluate(args.mode)

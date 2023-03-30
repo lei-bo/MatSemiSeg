@@ -8,14 +8,13 @@ n_classes: 4
 split_info:
   type: CSVSplit
   test_type: CSVSplit
-  split_file: split_cv.csv
-  split_col_name: split
+  split_file: full_CV6.csv
+  split_col_name: CV0
+  train_split_num: 0
   val_split_num: 1
-  test_split_num: 0
+  test_split_num: 2
   train_reverse: True
-cross_validation:
-  val_splits: [1, 2, 3, 4, 5, 0]
-  test_splits: [0, 1, 2, 3, 4, 5]
+  n_cross_valid: 6
 
 # data information
 train_size: [224, 224]
@@ -35,6 +34,7 @@ train_repeat: 8
 loss_type: CE
 ignore_index: -1
 batch_size: 4
+print_freq: 5
 optimizer:
   type: AdamW
   encoder_lr: 5.e-5

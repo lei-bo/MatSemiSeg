@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 
 from .encoder import HypercolumnVgg
 from .vlad import VLAD
-from .optimization import milp_optimize, brute_force_search
+from .optimization import brute_force_search
 from .datasets import DatasetTemplate, CSVSplitDataset, TextSplitDataset
 
 
@@ -40,6 +40,7 @@ class Selector:
         pre-computed.
         """
         if not os.path.exists(self.vlad_save_dir):
+            print(f"VLAD representations not found at {self.vlad_save_dir}. Computing now...")
             os.makedirs(self.vlad_save_dir, exist_ok=True)
             print("--- sample pixel-level hypercolumn embeddings ---")
             samples = self.sample_cnn_embedding()
@@ -50,6 +51,7 @@ class Selector:
             print("--- computing VLAD representations ---")
             vlads = self.compute_vlads()
         else:
+            print(f"VLAD representations found at {self.vlad_save_dir}")
             vlads = self.load_vlads()
         selected = self.select_from_vlads(vlads)
         print("selected images: ", selected)
@@ -107,70 +109,12 @@ class Selector:
         return np.vstack(vlads)
 
 
-class MaxSimSelector(Selector):
+class AMRDSelector(Selector):
     def __init__(self,
                  dataset: DatasetTemplate,
                  n_select: int,
                  vlad_save_dir: str,
-                 n_samples_per_image: int = 20000,
-                 n_words: int = 64,
-                 pca_dim: int = 128,
-                 solver: str = "MILP",
-                 device = 'cuda'):
-
-        super().__init__(dataset, n_select, vlad_save_dir,
-                         n_samples_per_image, n_words, pca_dim, device)
-        self.solver = solver
-
-    def select_from_vlads(self, vlads):
-        similarities = np.zeros((vlads.shape[0], vlads.shape[0]))
-        for i in range(vlads.shape[0]):
-            similarities[i, :] = vlads @ vlads[i]
-        similarities = similarities + 1
-        if self.solver == "MILP":
-            selected_ids = milp_optimize(similarities, self.n_select)
-        else:
-            selected_ids = brute_force_search(similarities, self.n_select)
-        return self.img_names[selected_ids]
-
-
-class ClusterSelector(Selector):
-    def __init__(self,
-                 dataset: DatasetTemplate,
-                 n_select: int,
-                 vlad_save_dir: str,
-                 n_samples_per_image: int = 20000,
-                 n_words: int = 64,
-                 pca_dim: int = 128,
-                 method: str = "spectral",
-                 device = 'cuda'):
-
-        super().__init__(dataset, n_select, vlad_save_dir,
-                         n_samples_per_image, n_words, pca_dim, device)
-        if method == "spectral":
-            self.cluster = SpectralClustering(n_clusters=n_select)
-        elif method == "kmeans":
-            self.cluster = KMeans(n_clusters=n_select)
-        else:
-            raise NotImplementedError(method)
-
-    def select_from_vlads(self, vlads):
-        cluster_ids = self.cluster.fit_predict(vlads)
-        selected_ids = []
-        for i in range(self.n_select):
-            img_ids = np.where(cluster_ids == i)[0]
-            vlads_i = vlads[img_ids, :]
-            sims = vlads_i @ vlads_i.T
-            selected_id = img_ids[np.argmax(sims.sum(axis=1))]
-            selected_ids.append(selected_id)
-        return self.img_names[selected_ids]
-
-
-class AddSimSelector(Selector):
-    def __init__(self,
-                 dataset: DatasetTemplate,
-                 n_select: int,
-                 vlad_save_dir: str,
+                 lam: float = 0.1,
                  n_samples_per_image: int = 20000,
                  n_words: int = 64,
                  pca_dim: int = 128,
@@ -185,6 +129,7 @@ class AddSimSelector(Selector):
                                if self.img_names[i] in img_choices]
         else:
             self.id_choices = None
+        self.lam = lam
 
     def select_from_vlads(self, vlads):
         similarities = np.zeros((vlads.shape[0], vlads.shape[0]))
@@ -205,7 +150,7 @@ class AddSimSelector(Selector):
                 continue
             sim2selected = similarities[i, selected_ids].mean()
             sim2unselected = similarities[i, remainder].mean()
-            score = sim2unselected - 0.1*sim2selected
+            score = sim2unselected - self.lam * sim2selected
             if score > best_score:
                 best_score = score
                 selected = i
@@ -219,18 +164,22 @@ class RandomSelector:
         self.img_names = dataset.img_names
         self.n_select = n_select
         if choices_txt_path is not None:
-            self.img_choices = set(np.loadtxt(choices_txt_path, dtype=str, ndmin=1))
+            self.img_choices = np.loadtxt(choices_txt_path, dtype=str, ndmin=1)
         else:
             self.img_choices = None
         np.random.seed(seed)
 
     def select(self):
-        selected = np.random.choice(self.img_names, self.n_select,
-                                    replace=False)
         if self.img_choices is not None:
-            while not set(selected).issubset(self.img_choices):
-                selected = np.random.choice(self.img_names, self.n_select,
-                                            replace=False)
+            intersection = set(self.img_names).intersection(set(self.img_choices))
+            assert len(intersection) > 0
+            first_image = np.random.choice(list(intersection), 1)
+            pool = set(self.img_names).difference(first_image)
+            selected = np.random.choice(list(pool), self.n_select-1, replace=False)
+            selected = np.concatenate([first_image, selected])
+        else:
+            selected = np.random.choice(self.img_names, self.n_select,
+                                        replace=False)
 
         print("selected images: ", selected)
         return selected
@@ -243,8 +192,9 @@ if __name__ == '__main__':
     arg_parser.add_argument("--csv_split_col", default="split")
     arg_parser.add_argument("--csv_split_num", default=0)
     arg_parser.add_argument("--n_select", type=int, required=True)
-    arg_parser.add_argument("--method", default='maxsim',
-                            choices=['maxsim', 'cluster', 'random', 'addsim'])
+    arg_parser.add_argument("--method", default='random',
+                            choices=['amrd', 'random'])
+    arg_parser.add_argument("--amrd_lam", type=float, default=0.1)
     arg_parser.add_argument("--n_samples_per_image", type=int, default=20000)
     arg_parser.add_argument("--pca_dim", type=int, default=128)
     arg_parser.add_argument("--n_words", type=int, default=64)
@@ -272,21 +222,16 @@ if __name__ == '__main__':
         raise ValueError(f"unsupported split file type: {args.split_file}")
 
     assert len(dataset) >= args.n_select, "select more than the total number of images"
-    if args.method == 'maxsim':
-        selector = MaxSimSelector(dataset, args.n_select, vlad_save_dir,
-                                  args.n_samples_per_image, args.n_words,
-                                  args.pca_dim, "MILP", args.device)
-    elif args.method == 'addsim':
-        selector = AddSimSelector(dataset, args.n_select, vlad_save_dir,
+    if args.method == 'amrd':
+        selector = AMRDSelector(dataset, args.n_select, vlad_save_dir, args.amrd_lam,
                                   args.n_samples_per_image, args.n_words,
                                   args.pca_dim, args.device)
-    elif args.method == 'cluster':
-        selector = ClusterSelector(dataset, args.n_select, vlad_save_dir,
-                                   args.n_samples_per_image, args.n_words,
-                                   args.pca_dim, "kmeans", args.device)
+        save_path = f"./data/{args.dataset}/splits/amrd_lam{args.amrd_lam}_{args.n_select}-shot.txt"
     elif args.method == 'random':
         selector = RandomSelector(dataset, args.n_select, args.seed)
+        save_path = f"./data/{args.dataset}/splits/random_{args.n_select}-shot.txt"
     else:
         raise ValueError(f"unsupported method {args.method}")
     selected = selector.select()
-    np.savetxt(f"./data/{args.dataset}/splits/{args.method}_select_{args.n_select}.txt", selected, fmt='%s')
+    print("saved at ", save_path)
+    np.savetxt(save_path, selected, fmt='%s')

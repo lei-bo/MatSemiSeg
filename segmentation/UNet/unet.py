@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torchvision.models import vgg16
+from torchvision.models import vgg16, VGG16_Weights
 
 from .unet_parts import DoubleConv, Down, Up, OutConv
 
@@ -35,7 +35,7 @@ class UNet(nn.Module):
 class UNetVgg16(nn.Module):
     def __init__(self, n_classes):
         super(UNetVgg16, self).__init__()
-        encoder = vgg16(pretrained=True).features
+        encoder = vgg16(weights=VGG16_Weights.DEFAULT).features
         self.inc = encoder[:4]
         self.down1 = encoder[4:9]
         self.down2 = encoder[9:16]

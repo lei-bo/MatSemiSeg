@@ -1,4 +1,5 @@
 from argparse import Namespace
+import pickle, os
 
 from run_cv import CrossValidation
 from segmentation.args import Arguments
@@ -12,6 +13,7 @@ class SelectedCV(CrossValidation):
         args.split_info.val_split_num = 1
         args.split_info.test_split_num = 2
         args.split_info.train_reverse = False
+        self.n_cross_valid = args.split_info.n_cross_valid
 
     @classmethod
     def update_args(cls, args, cv_id):
@@ -31,5 +33,16 @@ if __name__ == '__main__':
     cv = SelectedCV(args)
     if args.mode == 'train':
         cv.train()
+        cv.evaluate('val')
+        cv.evaluate('test')
     else:
-        cv.evaluate(args.mode)
+        ious_cv, ferrors_cv = cv.evaluate(args.mode)
+        result_path = f"./experiments/results/{args.dataset}_{args.mode}_ious.pkl"
+        if not os.path.exists(result_path):
+            results = {}
+        else:
+            with open(f"./experiments/results/{args.dataset}_{args.mode}_ious.pkl", 'rb') as f:
+                results = pickle.load(f)
+        results[args.experim_name] = {'ferrors': ferrors_cv, 'ious': ious_cv}
+        with open(f"./experiments/results/{args.dataset}_{args.mode}_ious.pkl", 'wb') as f:
+            pickle.dump(results, f)
