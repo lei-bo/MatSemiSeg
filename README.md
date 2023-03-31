@@ -1,5 +1,10 @@
 # Few-Shot Segmentation of Complex Microstructures
+
 ## Setup
+```shell
+pip install -r requirements.txt
+```
+
 ## Training image selection
 The training image selection is implemented in `selection/select_img.py`. The script takes the following arguments:
 - `--dataset`: the dataset name, e.g. `uhcs`
@@ -15,6 +20,7 @@ python -m selection.select_img --dataset uhcs --split_file train16A.txt --n_sele
 ```
 
 ## Training segmentation models
+The details of data preparation and training configuration can be found at https://github.com/leibo-cmu/MatSeg. 
 The segmentation model training is implemented in `segmentation/train.py`. The script takes the following arguments:
 - `--config`: the config file name, e.g. `full_sup.yaml`
 - `--gpu_id`: the GPU id to use, default is 0
