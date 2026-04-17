@@ -13,18 +13,26 @@ from segmentation.eval import evaluate
 class CrossValidation:
 
     def __init__(self, args):
-        s_info = args.split_info
-        s_info.type = 'CSVSplit'
-        s_info.test_type = 'CSVSplit'
-        s_info.train_reverse = True
-        self.n_cross_valid = len(args.cross_validation['val_splits'])
+        if hasattr(args, 'cross_validation'):
+            s_info = args.split_info
+            s_info.type = 'CSVSplit'
+            s_info.test_type = 'CSVSplit'
+            s_info.train_reverse = True
+            self.cv_mode = 'split_numbers'
+            self.n_cross_valid = len(args.cross_validation['val_splits'])
+        else:
+            self.cv_mode = 'split_columns'
+            self.n_cross_valid = args.split_info.n_cross_valid
         self.args = args
 
     @classmethod
     def update_args(cls, args, cv_id):
         args_i = Namespace(**vars(args))
-        args_i.split_info.val_split_num = args.cross_validation['val_splits'][cv_id]
-        args_i.split_info.test_split_num = args.cross_validation['test_splits'][cv_id]
+        if hasattr(args, 'cross_validation'):
+            args_i.split_info.val_split_num = args.cross_validation['val_splits'][cv_id]
+            args_i.split_info.test_split_num = args.cross_validation['test_splits'][cv_id]
+        else:
+            args_i.split_info.split_col_name = f"CV{cv_id}"
         args_i.experim_name += f"_CV{cv_id}"
         Arguments.update_checkpoints_dir(args_i, f"{args.checkpoints_dir}/CV{cv_id}")
         return args_i
