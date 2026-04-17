@@ -1,0 +1,44 @@
+# dataset basic
+dataset: MetalDAM
+img_folder: images
+label_folder: labels
+n_classes: 4
+
+# train, validation and test split
+split_info:
+  type: TextSplit
+  test_type: TextSplit
+  train_split_file: train.txt
+  val_split_file: val.txt
+  test_split_file: test.txt
+cross_validation:
+  val_splits: [1, 2, 3, 4, 5, 0]
+  test_splits: [0, 1, 2, 3, 4, 5]
+
+# data information
+train_size: [448, 448]
+eval_size: [703, 1024]
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+ignore_index: -1
+
+# data augmentation
+augmentations:
+  Flip: {p: 0.5}
+  ShiftScaleRotate: {shift_limit: 0, scale_limit: [-0.2,0.2], rotate_limit: 45, border_mode: 3, p: 0.8}
+  RandomBrightnessContrast: {brightness_limit: [0, 0.2], contrast_limit: 0.3, p: 0.8}
+
+# training
+n_epochs: 150
+train_repeat: 2
+batch_size: 2
+loss_type: Jaccard
+optimizer:
+  type: AdamW
+  encoder_lr: 5.e-5
+  decoder_lr: 5.e-4
+  weight_decay: 1.e-2
+lr_scheduler:
+  type: MultiStepLR
+  params: {milestones: [75, 125], gamma: 0.3}
+metric: mIoU

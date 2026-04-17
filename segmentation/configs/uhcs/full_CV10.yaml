@@ -1,0 +1,19 @@
+split_info:
+  type: CSVSplit
+  test_type: CSVSplit
+  split_file: full_CV10.csv
+  split_col_name: CV0
+  train_split_num: 0
+  val_split_num: 1
+  test_split_num: 2
+  train_reverse: False
+  n_cross_valid: 10
+
+optimizer:
+  type: AdamW
+  encoder_lr: 5.e-5
+  decoder_lr: 5.e-4
+  weight_decay: 1.e-2
+lr_scheduler:
+  type: MultiStepLR
+  params: {milestones: [50, 100], gamma: 0.3}
