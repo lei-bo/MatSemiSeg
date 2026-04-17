@@ -242,7 +242,7 @@ def get_dataloaders(args):
 if __name__ == '__main__':
     from .args import Arguments
     import sys
-    sys.argv.extend(['--config', 'test_aug.yaml'])
+    sys.argv.extend(['--dataset', 'MetalDAM', '--config', 'select_CV6/amrd_lambda0.5_8-shot.yaml'])
     parser = Arguments()
     args = parser.parse_args(use_random_seed=False)
     args.train_repeat = 1

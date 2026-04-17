@@ -194,7 +194,7 @@ if __name__ == '__main__':
     arg_parser.add_argument("--n_select", type=int, required=True)
     arg_parser.add_argument("--method", default='random',
                             choices=['amrd', 'random'])
-    arg_parser.add_argument("--amrd_lam", type=float, default=0.1)
+    arg_parser.add_argument("--amrd_lambda", type=float, default=0.1)
     arg_parser.add_argument("--n_samples_per_image", type=int, default=20000)
     arg_parser.add_argument("--pca_dim", type=int, default=128)
     arg_parser.add_argument("--n_words", type=int, default=64)
@@ -223,10 +223,10 @@ if __name__ == '__main__':
 
     assert len(dataset) >= args.n_select, "select more than the total number of images"
     if args.method == 'amrd':
-        selector = AMRDSelector(dataset, args.n_select, vlad_save_dir, args.amrd_lam,
+        selector = AMRDSelector(dataset, args.n_select, vlad_save_dir, args.amrd_lambda,
                                   args.n_samples_per_image, args.n_words,
                                   args.pca_dim, args.device)
-        save_path = f"./data/{args.dataset}/splits/amrd_lam{args.amrd_lam}_{args.n_select}-shot.txt"
+        save_path = f"./data/{args.dataset}/splits/amrd_lambda{args.amrd_lambda}_{args.n_select}-shot.txt"
     elif args.method == 'random':
         selector = RandomSelector(dataset, args.n_select, args.seed)
         save_path = f"./data/{args.dataset}/splits/random_{args.n_select}-shot.txt"
