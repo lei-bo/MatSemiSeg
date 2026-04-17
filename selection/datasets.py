@@ -71,7 +71,7 @@ class TextSplitDataset(DatasetTemplate):
         the images in the split
         """
         super().__init__(img_dir)
-        self.img_names = np.loadtxt(split_txt, dtype=str, delimiter='\n', ndmin=1)
+        self.img_names = np.loadtxt(split_txt, dtype=str, ndmin=1)
 
 
 if __name__ == '__main__':
