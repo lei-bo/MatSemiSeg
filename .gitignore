@@ -1,7 +1,6 @@
 .DS_Store
 .idea/
-data/
-segmentation/configs/
-experiments/
-tmp.py
 __pycache__/
+
+data/
+segmentation/checkpoints/
