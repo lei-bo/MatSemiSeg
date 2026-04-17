@@ -1,0 +1,33 @@
+n_select: 4
+select_method: amrd
+
+split_info:
+  type: CSVSplit
+  test_type: CSVSplit
+  split_file: amrd_lambda0.1_4-shot.csv
+  split_col_name: CV0
+  train_split_num: 0
+  val_split_num: 1
+  test_split_num: 2
+  train_reverse: False
+  n_cross_valid: 10
+
+augmentations:
+  Flip: {p: 0.5}
+  ShiftScaleRotate: {shift_limit: 0, scale_limit: [0,1], rotate_limit: 45, p: 0.8}
+  RandomBrightnessContrast: {brightness_limit: 0.2, contrast_limit: 0.3, p: 0.8}
+  GaussianBlur: {blur_limit: [3,7], p: 0.2}
+  MotionBlur: {blur_limit: 9, p: 0.2}
+  Sharpen: {p: 0.2}
+  GaussNoise: {p: 0.2}
+
+train_repeat: 32
+loss_type: CE
+optimizer:
+  type: AdamW
+  encoder_lr: 5.e-5
+  decoder_lr: 5.e-4
+  weight_decay: 1.e-2
+lr_scheduler:
+  type: MultiStepLR
+  params: {milestones: [50, 100], gamma: 0.3}
