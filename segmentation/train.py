@@ -12,7 +12,6 @@ def train_epoch(model, dataloader, n_classes, optimizer, lr_scheduler, criterion
     model.train()
     loss_meter = AverageMeter()
     score_meter = ScoreMeter(n_classes)
-    start = time.time()
     for i, (inputs, labels, _) in enumerate(dataloader):
         inputs, labels = inputs.to(device), labels.long().to(device)
         # forward
@@ -27,7 +26,6 @@ def train_epoch(model, dataloader, n_classes, optimizer, lr_scheduler, criterion
         # measure
         loss_meter.update(loss.item(), inputs.size(0))
         score_meter.update(preds, labels.cpu().numpy())
-    print(f"Train time: {(time.time() - start)/len(dataloader)}")
     scores = score_meter.get_scores()
     miou, ious, acc = scores['mIoU'], scores['IoUs'], scores['accuracy']
     return loss_meter.avg, acc, miou, ious
