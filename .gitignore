@@ -4,3 +4,4 @@ data/
 segmentation/configs/
 experiments/
 tmp.py
+__pycache__/
