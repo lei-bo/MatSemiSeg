@@ -1,0 +1,21 @@
+n_select: 4
+select_method: amrd
+amrd_lambda: 0.1
+
+split_info:
+  type: TextSplit
+  test_type: TextSplit
+  train_split_file: amrd_lambda0.1_4-shot.txt
+  val_split_file: validate4A.txt
+  test_split_file: test4A.txt
+
+augmentations:
+  Flip: {p: 0.5}
+  ShiftScaleRotate: {shift_limit: 0, scale_limit: [0,1], rotate_limit: 45, p: 0.8}
+  RandomBrightnessContrast: {brightness_limit: 0.2, contrast_limit: 0.3, p: 0.8}
+  GaussianBlur: {blur_limit: [3,7], p: 0.2}
+  MotionBlur: {blur_limit: 9, p: 0.2}
+  Sharpen: {p: 0.2}
+  GaussNoise: {p: 0.2}
+
+train_repeat: 32
