@@ -32,6 +32,7 @@ augmentations:
 n_epochs: 150
 train_repeat: 2
 batch_size: 2
+print_freq: 5
 loss_type: Jaccard
 optimizer:
   type: AdamW
