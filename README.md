@@ -113,7 +113,7 @@ python experiments/run_cv.py --dataset MetalDAM --config full_CV6.yaml -m train
 For selected-subset cross-validation using pre-generated selection configs:
 
 ```shell
-python experiments/run_selected_cv.py --dataset uhcs --config select_CV10/amrd_lambda0.2_4-shot.yaml -m train
+python experiments/run_selected_cv.py --dataset uhcs --config select_CV10/amrd_lambda0.1_4-shot.yaml -m train
 python experiments/run_selected_cv.py --dataset MetalDAM --config select_CV6/amrd_lambda0.5_4-shot.yaml -m train
 ```
 

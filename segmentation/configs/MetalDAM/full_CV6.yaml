@@ -10,7 +10,6 @@ split_info:
   train_reverse: False
   n_cross_valid: 6
 
-data augmentation
 augmentations:
  Flip: {p: 0.5}
  ShiftScaleRotate: {shift_limit: 0, scale_limit: [-0.2,0.2], rotate_limit: 45, border_mode: 3, p: 0.8}
