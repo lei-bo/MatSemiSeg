@@ -1,0 +1,15 @@
+n_select: 4
+select_method: amrd
+
+split_info:
+  type: CSVSplit
+  test_type: CSVSplit
+  split_file: amrd_lambda0.5_4-shot.csv
+  split_col_name: CV0
+  train_split_num: 0
+  val_split_num: 1
+  test_split_num: 2
+  train_reverse: False
+  n_cross_valid: 6
+
+train_repeat: 16
